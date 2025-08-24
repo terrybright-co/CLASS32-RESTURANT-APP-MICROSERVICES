@@ -5,7 +5,6 @@ on:
     branches: [ main, master ]
 
 env:
-  DOCKER_HUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKER_HUB_REPOSITORY: class-restuarants
 
 jobs:
@@ -25,10 +24,36 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push with Docker Compose
+    - name: Build images with Docker Compose
+      run: docker compose build
+
+    - name: Tag and push images
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       run: |
         SHORT_SHA=$(git rev-parse --short HEAD)
         
-        # Build and push all services with proper tagging
-        docker compose build
-        docker compose push
+        # Get services and process each one
+        services=$(docker compose config --services)
+        for service in $services; do
+          echo "Processing $service..."
+          
+          # Get the actual image ID for the service
+          image_id=$(docker compose images -q $service)
+          
+          if [ -z "$image_id" ]; then
+            echo "Warning: Could not find image for service $service, using service name"
+            image_name=$service
+          else
+            # Use the actual image ID for tagging
+            image_name=$image_id
+          fi
+          
+          # Tag with both SHA and latest
+          docker tag $image_name $DOCKERHUB_USERNAME/${{ env.DOCKER_HUB_REPOSITORY }}-$service:$SHORT_SHA
+          docker tag $image_name $DOCKERHUB_USERNAME/${{ env.DOCKER_HUB_REPOSITORY }}-$service:latest
+          
+          # Push both tags
+          docker push $DOCKERHUB_USERNAME/${{ env.DOCKER_HUB_REPOSITORY }}-$service:$SHORT_SHA
+          docker push $DOCKERHUB_USERNAME/${{ env.DOCKER_HUB_REPOSITORY }}-$service:latest
+        done
