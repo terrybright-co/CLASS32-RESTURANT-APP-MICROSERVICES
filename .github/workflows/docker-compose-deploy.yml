@@ -3,11 +3,9 @@ name: Build and Push Docker Compose Images
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
 
 env:
-  DOCKER_HUB_REPOSITORY: liontechacademy/class-restuarants
+  DOCKER_HUB_REPOSITORY: your-dockerhub-username/class-restuarants
   DOCKER_COMPOSE_FILE: docker-compose.yml
 
 jobs:
@@ -18,7 +16,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
+    - name: Set up Docker
       uses: docker/setup-buildx-action@v3
 
     - name: Login to Docker Hub
@@ -27,40 +25,25 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Extract Docker Compose services
-      id: extract-services
+    - name: Build images with Docker Compose
       run: |
-        # Extract service names from docker-compose.yml
-        services=$(docker-compose -f $DOCKER_COMPOSE_FILE config --services)
-        echo "services=$(echo $services | tr '\n' ' ')" >> $GITHUB_OUTPUT
+        # Use docker compose (v2) instead of docker-compose (v1)
+        docker compose -f $DOCKER_COMPOSE_FILE build
 
-    - name: Build and push images
+    - name: Tag and push images
       run: |
-        # Get the Git commit SHA for tagging
         SHORT_SHA=$(git rev-parse --short HEAD)
         
-        # Build and push each service
-        for service in ${{ steps.extract-services.outputs.services }}; do
-          echo "Building and pushing $service..."
+        # Get services and process each one
+        services=$(docker compose -f $DOCKER_COMPOSE_FILE config --services)
+        for service in $services; do
+          echo "Processing $service..."
           
-          # Build the image
-          docker-compose -f $DOCKER_COMPOSE_FILE build $service
-          
-          # Tag with commit SHA
-          docker tag ${service}:latest $DOCKER_HUB_REPOSITORY-${service}:$SHORT_SHA
-          
-          # Tag with latest
-          docker tag ${service}:latest $DOCKER_HUB_REPOSITORY-${service}:latest
+          # Tag with both SHA and latest
+          docker tag ${service}:latest ${{ env.DOCKER_HUB_REPOSITORY }}-${service}:$SHORT_SHA
+          docker tag ${service}:latest ${{ env.DOCKER_HUB_REPOSITORY }}-${service}:latest
           
           # Push both tags
-          docker push $DOCKER_HUB_REPOSITORY-${service}:$SHORT_SHA
-          docker push $DOCKER_HUB_REPOSITORY-${service}:latest
-        done
-
-    - name: Verify pushed images
-      run: |
-        SHORT_SHA=$(git rev-parse --short HEAD)
-        for service in ${{ steps.extract-services.outputs.services }}; do
-          echo "Verifying $service:$SHORT_SHA was pushed successfully..."
-          # You could add verification logic here, like checking Docker Hub API
+          docker push ${{ env.DOCKER_HUB_REPOSITORY }}-${service}:$SHORT_SHA
+          docker push ${{ env.DOCKER_HUB_REPOSITORY }}-${service}:latest
         done
