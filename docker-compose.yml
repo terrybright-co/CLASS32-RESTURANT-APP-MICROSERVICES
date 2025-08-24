@@ -25,11 +25,11 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Build images with Docker Compose
-      run: docker compose build
+      run: |
+        # Use docker compose (v2) instead of docker-compose (v1)
+        docker compose build
 
     - name: Tag and push images
-      env:
-        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       run: |
         SHORT_SHA=$(git rev-parse --short HEAD)
         
@@ -50,10 +50,10 @@ jobs:
           fi
           
           # Tag with both SHA and latest
-          docker tag $image_name $DOCKERHUB_USERNAME/${{ env.DOCKER_HUB_REPOSITORY }}-$service:$SHORT_SHA
-          docker tag $image_name $DOCKERHUB_USERNAME/${{ env.DOCKER_HUB_REPOSITORY }}-$service:latest
+          docker tag $image_name ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_HUB_REPOSITORY }}-$service:$SHORT_SHA
+          docker tag $image_name ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_HUB_REPOSITORY }}-$service:latest
           
           # Push both tags
-          docker push $DOCKERHUB_USERNAME/${{ env.DOCKER_HUB_REPOSITORY }}-$service:$SHORT_SHA
-          docker push $DOCKERHUB_USERNAME/${{ env.DOCKER_HUB_REPOSITORY }}-$service:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_HUB_REPOSITORY }}-$service:$SHORT_SHA
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_HUB_REPOSITORY }}-$service:latest
         done
