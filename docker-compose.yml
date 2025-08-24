@@ -45,22 +45,22 @@ services:
     networks:
       - restaurant-network
 
-  db:
-    image: postgres:13
-    environment:
-      - POSTGRES_DB=restaurant
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - ./db-service/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - postgres-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - restaurant-network
+#   db:
+#     image: postgres:13
+#     environment:
+#       - POSTGRES_DB=restaurant
+#       - POSTGRES_USER=admin
+#       - POSTGRES_PASSWORD=password
+#     volumes:
+#       - ./db-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+#       - postgres-data:/var/lib/postgresql/data
+#     ports:
+#       - "5432:5432"
+#     networks:
+#       - restaurant-network
 
-volumes:
-  postgres-data:
+# volumes:
+#   postgres-data:
 
 networks:
   restaurant-network:
