@@ -4,12 +4,11 @@ on:
   push:
     branches: [ main, master ]
 
-env:
-  DOCKER_HUB_REPOSITORY: class-restuarants
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_HUB_REPOSITORY: class-restuarants
     
     steps:
     - name: Checkout code
@@ -25,9 +24,7 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Build images with Docker Compose
-      run: |
-        # Use docker compose (v2) instead of docker-compose (v1)
-        docker compose build
+      run: docker compose build
 
     - name: Tag and push images
       run: |
@@ -50,10 +47,10 @@ jobs:
           fi
           
           # Tag with both SHA and latest
-          docker tag $image_name ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_HUB_REPOSITORY }}-$service:$SHORT_SHA
-          docker tag $image_name ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_HUB_REPOSITORY }}-$service:latest
+          docker tag $image_name ${{ secrets.DOCKERHUB_USERNAME }}/class-restuarants-$service:$SHORT_SHA
+          docker tag $image_name ${{ secrets.DOCKERHUB_USERNAME }}/class-restuarants-$service:latest
           
           # Push both tags
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_HUB_REPOSITORY }}-$service:$SHORT_SHA
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DOCKER_HUB_REPOSITORY }}-$service:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/class-restuarants-$service:$SHORT_SHA
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/class-restuarants-$service:latest
         done
