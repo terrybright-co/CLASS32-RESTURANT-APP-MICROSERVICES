@@ -22,32 +22,62 @@ jobs:
     - name: Build images with Docker Compose
       run: docker compose build
 
-    - name: Get image information and push
+    - name: Debug - Show all images
+      run: |
+        echo "=== All Docker images ==="
+        docker images --all
+        echo "=== Docker Compose services ==="
+        docker compose config --services
+
+    - name: Tag and push most recent images
       run: |
         SHORT_SHA=$(git rev-parse --short HEAD)
         USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
         
-        # Get services and their actual image names
-        services=$(docker compose config --services)
+        # Get the most recently built images (assuming they're the ones we want)
+        recent_images=$(docker images --filter "dangling=false" --format "{{.ID}} {{.Repository}}" | sort -r | head -5)
+        echo "Recent images:"
+        echo "$recent_images"
         
-        for service in $services; do
-          echo "Processing $service..."
-          
-          # Get the actual image name that was built (not just the service name)
-          image_name=$(docker compose images --format json | jq -r ".[] | select(.Service == \"$service\") | .Name")
-          
-          if [ -z "$image_name" ]; then
-            echo "Warning: Could not find image name for service $service, using service name"
-            image_name="$service:latest"
-          fi
-          
-          echo "Image name: $image_name"
-          
-          # Tag with Docker Hub repository names
-          docker tag $image_name $USERNAME/class-restuarants-$service:$SHORT_SHA
-          docker tag $image_name $USERNAME/class-restuarants-$service:latest
-          
-          # Push both tags
-          docker push $USERNAME/class-restuarants-$service:$SHORT_SHA
-          docker push $USERNAME/class-restuarants-$service:latest
-        done
+        services=$(docker compose config --services)
+        image_count=$(echo "$recent_images" | wc -l)
+        
+        if [ "$image_count" -eq 0 ]; then
+          echo "Error: No images found to push"
+          exit 1
+        fi
+        
+        # If we have the same number of services and images, assume they match in order
+        if [ "$(echo "$services" | wc -l)" -eq "$image_count" ]; then
+          echo "Matching services to images by order..."
+          i=1
+          for service in $services; do
+            image_id=$(echo "$recent_images" | sed -n "${i}p" | awk '{print $1}')
+            echo "Tagging $service with image $image_id"
+            
+            docker tag $image_id $USERNAME/class-restuarants-$service:$SHORT_SHA
+            docker tag $image_id $USERNAME/class-restuarants-$service:latest
+            
+            docker push $USERNAME/class-restuarants-$service:$SHORT_SHA
+            docker push $USERNAME/class-restuarants-$service:latest
+            
+            i=$((i+1))
+          done
+        else
+          echo "Warning: Number of services and images don't match. Pushing all recent images with generic names."
+          i=1
+          for service in $services; do
+            image_id=$(echo "$recent_images" | sed -n "${i}p" | awk '{print $1}')
+            if [ -n "$image_id" ]; then
+              echo "Tagging $service with image $image_id"
+              
+              docker tag $image_id $USERNAME/class-restuarants-$service:$SHORT_SHA
+              docker tag $image_id $USERNAME/class-restuarants-$service:latest
+              
+              docker push $USERNAME/class-restuarants-$service:$SHORT_SHA
+              docker push $USERNAME/class-restuarants-$service:latest
+              
+              i=$((i+1))
+            fi
+          done
+        fi
