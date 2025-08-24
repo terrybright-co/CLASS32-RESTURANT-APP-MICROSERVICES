@@ -4,10 +4,6 @@ on:
   push:
     branches: [ main, master ]
 
-env:
-  DOCKER_HUB_REPOSITORY: your-dockerhub-username/class-restuarants
-  DOCKER_COMPOSE_FILE: docker-compose.yml
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -16,34 +12,42 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Docker
+    - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
     - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+      run: |
+        echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
     - name: Build images with Docker Compose
-      run: |
-        # Use docker compose (v2) instead of docker-compose (v1)
-        docker compose -f $DOCKER_COMPOSE_FILE build
+      run: docker compose build
 
-    - name: Tag and push images
+    - name: Get image information and push
       run: |
         SHORT_SHA=$(git rev-parse --short HEAD)
+        USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
         
-        # Get services and process each one
-        services=$(docker compose -f $DOCKER_COMPOSE_FILE config --services)
+        # Get services and their actual image names
+        services=$(docker compose config --services)
+        
         for service in $services; do
           echo "Processing $service..."
           
-          # Tag with both SHA and latest
-          docker tag ${service}:latest ${{ env.DOCKER_HUB_REPOSITORY }}-${service}:$SHORT_SHA
-          docker tag ${service}:latest ${{ env.DOCKER_HUB_REPOSITORY }}-${service}:latest
+          # Get the actual image name that was built (not just the service name)
+          image_name=$(docker compose images --format json | jq -r ".[] | select(.Service == \"$service\") | .Name")
+          
+          if [ -z "$image_name" ]; then
+            echo "Warning: Could not find image name for service $service, using service name"
+            image_name="$service:latest"
+          fi
+          
+          echo "Image name: $image_name"
+          
+          # Tag with Docker Hub repository names
+          docker tag $image_name $USERNAME/class-restuarants-$service:$SHORT_SHA
+          docker tag $image_name $USERNAME/class-restuarants-$service:latest
           
           # Push both tags
-          docker push ${{ env.DOCKER_HUB_REPOSITORY }}-${service}:$SHORT_SHA
-          docker push ${{ env.DOCKER_HUB_REPOSITORY }}-${service}:latest
+          docker push $USERNAME/class-restuarants-$service:$SHORT_SHA
+          docker push $USERNAME/class-restuarants-$service:latest
         done
