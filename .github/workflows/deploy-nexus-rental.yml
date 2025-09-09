@@ -3,7 +3,7 @@ name: Build and Push Docker Compose Images
 on:
   push:
     branches: [  master ]
-# testing automation on feature branches too
+# testing automation on feature branches 
 jobs:
   build-and-push:
     runs-on: ubuntu-la-angelatest
@@ -55,12 +55,12 @@ jobs:
             image_id=$(echo "$recent_images" | sed -n "${i}p" | awk '{print $1}')
             echo "Tagging $service with image $image_id"
             
-            docker tag $image_id $USERNAME/la-angela-$service:$SHORT_SHA
-            docker tag $image_id $USERNAME/la-angela-$service:la-angelatest
+            docker tag $image_id $USERNAME/class32-$service:$SHORT_SHA
+            docker tag $image_id $USERNAME/class32-$service:la-angelatest
             
-            docker push $USERNAME/la-angela-$service:$SHORT_SHA
-            docker push $USERNAME/la-angela-$service:la-angelatest
-            
+            docker push $USERNAME/class32-$service:$SHORT_SHA
+            docker push $USERNAME/class32-$service:la-angelatest
+            gela
             i=$((i+1))
           done
         else
@@ -71,11 +71,11 @@ jobs:
             if [ -n "$image_id" ]; then
               echo "Tagging $service with image $image_id"
               
-              docker tag $image_id $USERNAME/la-angela-$service:$SHORT_SHA
-              docker tag $image_id $USERNAME/la-angela-$service:la-angelatest
+              docker tag $image_id $USERNAME/class32-$service:$SHORT_SHA
+              docker tag $image_id $USERNAME/class32-$service:$SHORT_SHA
               
-              docker push $USERNAME/la-angela-$service:$SHORT_SHA
-              docker push $USERNAME/la-angela-$service:la-angelatest
+              docker push $USERNAME/class32-$service:$SHORT_SHA
+              docker push $USERNAME/class32-$service:$SHORT_SHA
               
               i=$((i+1))
             fi
