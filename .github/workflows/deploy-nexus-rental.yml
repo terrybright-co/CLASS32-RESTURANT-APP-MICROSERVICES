@@ -59,8 +59,8 @@ jobs:
             docker tag $image_id $USERNAME/class32-$service:la-angelatest
             
             docker push $USERNAME/class32-$service:$SHORT_SHA
-            docker push $USERNAME/class32-$service:la-angelatest
-            gela
+            docker push $USERNAME/class32-$service:$SHORT_SHA
+            
             i=$((i+1))
           done
         else
