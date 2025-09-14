@@ -4,6 +4,7 @@ on:
   push:
     branches: [  master ]
 # testing automation on feature branches terrybright may 2024
+#    branches: [ feature/terrybright ]
 jobs:
   build-and-push:
     runs-on: ubuntu-la-angelatest
