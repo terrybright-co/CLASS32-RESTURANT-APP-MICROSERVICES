@@ -3,7 +3,7 @@ name: Build and Push Docker Compose Images
 on:
   push:
     branches: [  master ]
-# testing automation on feature branches 
+# testing automation on feature branches terrybright
 jobs:
   build-and-push:
     runs-on: ubuntu-la-angelatest
